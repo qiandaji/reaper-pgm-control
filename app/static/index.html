@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <title>PGM 控制台</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="conn-banner" class="conn-banner hidden" role="status">已断开，重连中…</div>
+  <div id="osc-banner" class="conn-banner osc-banner hidden" role="status">OSC 网关未启动，命令无法到达 REAPER — 请重启桥接</div>
+
+  <header class="now-card">
+    <div class="now-head">
+      <span class="now-label">当前曲目</span>
+      <span id="playing-badge" class="playing-badge">已停止</span>
+    </div>
+    <h1 id="now-title" class="now-title">未选曲</h1>
+
+    <div class="clock-row">
+      <div class="clock-cell">
+        <span class="clock-caption">已播</span>
+        <span id="clock-elapsed" class="clock-value">0:00</span>
+      </div>
+      <div class="clock-cell">
+        <span class="clock-caption">剩余</span>
+        <span id="clock-remaining" class="clock-value">–:–</span>
+      </div>
+    </div>
+
+    <div class="transport-row">
+      <button id="btn-stop" type="button" class="btn btn-stop">■ 停止</button>
+      <button id="btn-toggle" type="button" class="btn btn-play">▶ 播放</button>
+    </div>
+
+    <label class="switch-row auto-next-row">
+      <input type="checkbox" id="auto-next">
+      <span class="switch" aria-hidden="true"></span>
+      <span class="switch-text">自动连播</span>
+    </label>
+  </header>
+
+  <main class="main">
+    <section class="card" aria-labelledby="songs-title">
+      <div class="section-head">
+        <h2 id="songs-title">曲目列表</h2>
+        <span id="song-count" class="muted">0 首</span>
+      </div>
+      <ul id="song-list" class="list song-list"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="tracks-title">
+      <div class="section-head">
+        <h2 id="tracks-title">轨道</h2>
+        <span id="track-count" class="muted"></span>
+      </div>
+      <div class="track-tools">
+        <label class="mini-switch">
+          <input type="checkbox" id="auto-hide-defaults">
+          <span class="switch" aria-hidden="true"></span>
+          <span class="switch-text">隐藏默认名轨道</span>
+        </label>
+        <button id="btn-hidden-tracks" type="button" class="btn-link hidden">已隐藏 <span id="hidden-count">0</span> 轨</button>
+      </div>
+      <ul id="hidden-track-list" class="list hidden-list hidden"></ul>
+      <ul id="track-list" class="list track-list"></ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <button id="btn-global-settings" type="button" class="btn btn-secondary btn-wide">全局设置</button>
+  </footer>
+
+  <!-- 每曲设置抽屉 -->
+  <div id="drawer-song" class="drawer hidden" aria-hidden="true">
+    <div class="drawer-mask" data-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-song-title">
+      <div class="drawer-head">
+        <h3 id="drawer-song-title">曲目设置</h3>
+        <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+      </div>
+      <div class="drawer-body">
+        <label class="field">
+          <span class="field-label">播放时长（秒，0 = 不限）</span>
+          <input type="number" id="song-limit" min="0" step="1" inputmode="numeric" placeholder="0">
+        </label>
+        <div class="field">
+          <span class="field-label">到时动作</span>
+          <div class="seg-group">
+            <label class="seg"><input type="radio" name="song-end-action" value="none"><span>不动作</span></label>
+            <label class="seg"><input type="radio" name="song-end-action" value="stop"><span>停止</span></label>
+            <label class="seg"><input type="radio" name="song-end-action" value="stop_mute"><span>停+静音</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">静音轨道</span>
+          <div id="song-mute-tracks" class="chip-list"></div>
+        </div>
+      </div>
+      <div class="drawer-foot">
+        <button id="btn-song-restore" type="button" class="btn btn-ghost">恢复默认</button>
+        <button id="btn-song-save" type="button" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全局设置抽屉 -->
+  <div id="drawer-global" class="drawer hidden" aria-hidden="true">
+    <div class="drawer-mask" data-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-global-title">
+      <div class="drawer-head">
+        <h3 id="drawer-global-title">全局设置</h3>
+        <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+      </div>
+      <div class="drawer-body">
+        <label class="field">
+          <span class="field-label">默认时长（秒，0 = 不限）</span>
+          <input type="number" id="global-limit" min="0" step="1" inputmode="numeric" placeholder="0">
+        </label>
+        <div class="field">
+          <span class="field-label">默认到时动作</span>
+          <div class="seg-group">
+            <label class="seg"><input type="radio" name="global-end-action" value="none"><span>不动作</span></label>
+            <label class="seg"><input type="radio" name="global-end-action" value="stop"><span>停止</span></label>
+            <label class="seg"><input type="radio" name="global-end-action" value="stop_mute"><span>停+静音</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">默认静音轨道</span>
+          <div id="global-mute-tracks" class="chip-list"></div>
+        </div>
+        <label class="switch-row">
+          <input type="checkbox" id="global-auto-next">
+          <span class="switch" aria-hidden="true"></span>
+          <span class="switch-text">自动连播</span>
+        </label>
+        <label class="switch-row">
+          <input type="checkbox" id="global-play-on-switch">
+          <span class="switch" aria-hidden="true"></span>
+          <span class="switch-text">手动切歌后自动播放</span>
+        </label>
+        <label class="switch-row">
+          <input type="checkbox" id="confirm-switch">
+          <span class="switch" aria-hidden="true"></span>
+          <span class="switch-text">切歌确认</span>
+        </label>
+      </div>
+      <div class="drawer-foot">
+        <button id="btn-global-save" type="button" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 切歌确认层 -->
+  <div id="confirm-layer" class="modal hidden" aria-hidden="true">
+    <div class="modal-mask" data-close></div>
+    <div class="modal-panel" role="alertdialog" aria-modal="true">
+      <p id="confirm-text" class="confirm-text">确定切换曲目？</p>
+      <div class="modal-actions">
+        <button id="btn-confirm-cancel" type="button" class="btn btn-secondary">取消</button>
+        <button id="btn-confirm-ok" type="button" class="btn btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-box"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
