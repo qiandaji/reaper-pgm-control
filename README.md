@@ -16,6 +16,9 @@
 - `app/static/` — 纯静态前端（无构建、无 CDN，离线可用；中文，移动优先，深色主题）
 - `pgm-control.ReaperOSC` — REAPER 内置 OSC 控制面的 pattern 文件
 - `OSC_CONTRACT.md` — OSC 地址表、索引语义、REAPER 一次性设置步骤
+- `CHANGELOG.md` — 版本更新日志
+- `cleanup.sh` — 清理测试产物（缓存 / 字节码 / 调试页面）
+- `make_release.sh` — 一键发布新版本（测试 → 清理 → 提交 → tag → 推送 → Release → 再清理）
 - `tests/` — pytest（45 个用例：状态机 / REST / WS / OSC 编解码 / 网关生命周期回归）
 
 ## 环境要求
@@ -108,6 +111,14 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m pytest tests/ -q
 ```
 
-## 维护
+## 清理与发布
 
-本项目由 AI 持续维护：每次功能修改后会自动更新 GitHub 仓库与 Release。
+- `./cleanup.sh` — 清理测试与调试产生的文件（`.pytest_cache/`、`__pycache__/`、
+  `*.pyc`、`screenshots/mock*.html`）；不删除运行时配置 `data/` 与虚拟环境
+  `.venv/`，用户设置不受影响。
+- `./make_release.sh <版本号>` — 一键制作新版本：先跑测试（全绿才继续）→
+  发布前清理 → 提交并打 tag → 推送 GitHub → 创建 Release（说明取自
+  `CHANGELOG.md` 对应版本节）→ **制作完成后再次自动清理**。
+
+本项目由 AI 持续维护：每次功能修改后会自动更新 GitHub 仓库与 Release，并在每次
+新版本制作完成后自动清理测试产物。
